@@ -1,0 +1,107 @@
+﻿create database EMP
+
+go
+
+use EMP
+
+go
+
+CREATE TABLE JobTitle
+(
+    JobTitleID INT IDENTITY(1,1) PRIMARY KEY, -- Auto-incrementing primary key
+    Title NVARCHAR(100) NOT NULL,             -- Job title name   
+)
+
+go
+
+insert jobTitle (title) values('Software devleoper')
+insert jobTitle (title) values('QA')
+
+go
+
+CREATE TABLE Employees (
+    EmployeeID INT PRIMARY KEY IDENTITY(1,1),
+	JobTitleID int,
+    FirstName NVARCHAR(50),
+    LastName NVARCHAR(50),
+    Email NVARCHAR(100),
+    HireDate DATETIME,    
+    Salary DECIMAL(10, 2)
+)
+
+go
+
+create or alter PROCEDURE GetAllEmployees
+AS
+BEGIN
+    -- Selecting all columns from the Employees table
+    SELECT * FROM Employees e inner join JobTitle j on e.JobTitleID=j.JobTitleID
+END
+
+go
+
+go
+
+CREATE or alter PROCEDURE AddEmployee
+    @FirstName NVARCHAR(50),
+    @LastName NVARCHAR(50),
+    @Email NVARCHAR(100),
+    @HireDate DATETIME,
+    @JobTitleID int,
+    @Salary DECIMAL(10, 2)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO Employees (FirstName, LastName, Email, HireDate, JobTitleID, Salary)
+    VALUES (@FirstName, @LastName, @Email, @HireDate, @JobTitleID, @Salary);
+END
+
+
+	go
+
+	CREATE or alter PROCEDURE UpdateEmployee
+    @EmployeeID INT,
+    @FirstName NVARCHAR(50) = NULL,
+    @LastName NVARCHAR(50) = NULL,
+    @Email NVARCHAR(100) = NULL,
+    @HireDate DATETIME = NULL,
+    @JobTitleID  NVARCHAR(50) = NULL,
+    @Salary DECIMAL(10, 2) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE Employees
+    SET 
+        FirstName = COALESCE(@FirstName, FirstName),
+        LastName = COALESCE(@LastName, LastName),
+        Email = COALESCE(@Email, Email),
+        HireDate = COALESCE(@HireDate, HireDate),
+        JobTitleID  = COALESCE(@JobTitleID , JobTitleID),
+        Salary = COALESCE(@Salary, Salary)
+    WHERE EmployeeID = @EmployeeID;
+END
+
+go
+
+CREATE or alter PROCEDURE DeleteEmployee
+    @EmployeeID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Check if the employee exists
+    IF EXISTS (SELECT 1 FROM Employees WHERE EmployeeID = @EmployeeID)
+    BEGIN
+        DELETE FROM Employees
+        WHERE EmployeeID = @EmployeeID;
+    END
+    ELSE
+    BEGIN
+        RAISERROR('Employee with ID %d does not exist.', 16, 1, @EmployeeID);
+    END
+END
+
+go
+

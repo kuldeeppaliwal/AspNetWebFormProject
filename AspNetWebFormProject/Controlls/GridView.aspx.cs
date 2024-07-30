@@ -10,13 +10,14 @@ using System.Web.UI.WebControls;
 
 public partial class Controlls_GridView : System.Web.UI.Page
 {
-    private string connectionString = ConfigurationManager.ConnectionStrings["YourConnectionString"].ConnectionString;
+    private string connectionString = ConfigurationManager.ConnectionStrings["Employeeconnectionstring"].ConnectionString;
 
     protected void Page_Load(object sender, EventArgs e)
     {
         if (!IsPostBack)
         {
             BindGridView();
+            BindJobTitles();
         }
     }
 
@@ -45,6 +46,49 @@ public partial class Controlls_GridView : System.Web.UI.Page
     {
         GridView1.EditIndex = e.NewEditIndex;
         BindGridView();
+
+        BindJobTitlesToEditDropdown();
+    }
+
+    private void BindJobTitlesToEditDropdown()
+    {
+        // Loop through each row in the GridView
+        foreach (GridViewRow row in GridView1.Rows)
+        {
+            if (row.RowType == DataControlRowType.DataRow)
+            {
+                DropDownList ddlJobTitle = (DropDownList)row.FindControl("ddlJobTitle");
+                if (ddlJobTitle != null)
+                {
+                    ddlJobTitle.DataSource = GetJobTitles();
+                    ddlJobTitle.DataTextField = "Title"; // Field to display
+                    ddlJobTitle.DataValueField = "JobTitleID"; // Field to submit
+                    ddlJobTitle.DataBind();
+
+                    // Set the selected value based on current data
+                    Label lblJobTitle = (Label)row.FindControl("lblJobTitle");
+                    if (lblJobTitle != null)
+                    {
+                        ddlJobTitle.SelectedValue = DataBinder.Eval(row.DataItem, "JobTitleID").ToString();
+                    }
+                }
+            }
+        }
+    }
+
+    private DataTable GetJobTitles()
+    {
+        DataTable dt = new DataTable();
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            using (SqlCommand cmd = new SqlCommand("SELECT JobTitleID, Title FROM JobTitle", conn))
+            {
+                conn.Open();
+                SqlDataAdapter sda = new SqlDataAdapter(cmd);
+                sda.Fill(dt);
+            }
+        }
+        return dt;
     }
 
     // Handle the RowUpdating event
@@ -57,13 +101,13 @@ public partial class Controlls_GridView : System.Web.UI.Page
         TextBox txtFirstName = (TextBox)GridView1.Rows[e.RowIndex].FindControl("txtFirstName");
         TextBox txtLastName = (TextBox)GridView1.Rows[e.RowIndex].FindControl("txtLastName");
         TextBox txtEmail = (TextBox)GridView1.Rows[e.RowIndex].FindControl("txtEmail");
-        TextBox txtJobTitle = (TextBox)GridView1.Rows[e.RowIndex].FindControl("txtJobTitle");
+        DropDownList ddlJobTitle = (DropDownList)GridView1.Rows[e.RowIndex].FindControl("ddlJobTitle");
         TextBox txtSalary = (TextBox)GridView1.Rows[e.RowIndex].FindControl("txtSalary");
 
         // Check if any of the controls are null before proceeding
-        if (txtFirstName != null && txtLastName != null && txtEmail != null && txtJobTitle != null && txtSalary != null)
+        if (txtFirstName != null && txtLastName != null && txtEmail != null && Convert.ToInt32(ddlJobTitle.SelectedValue) != 0 && txtSalary != null)
         {
-            UpdateEmployee(employeeID, txtFirstName.Text, txtLastName.Text, txtEmail.Text, txtJobTitle.Text, Convert.ToDecimal(txtSalary.Text));
+            UpdateEmployee(employeeID, txtFirstName.Text, txtLastName.Text, txtEmail.Text, Convert.ToInt32(ddlJobTitle.SelectedValue), Convert.ToDecimal(txtSalary.Text));
         }
 
         // Exit edit mode
@@ -77,8 +121,7 @@ public partial class Controlls_GridView : System.Web.UI.Page
         // Insert logic as previously defined...
         string firstName = txtFirstName.Text;
         string lastName = txtLastName.Text;
-        string email = txtEmail.Text;
-        string jobTitle = txtJobTitle.Text;
+        string email = txtEmail.Text;        
         decimal salary;
 
         if (decimal.TryParse(txtSalary.Text, out salary))
@@ -93,7 +136,7 @@ public partial class Controlls_GridView : System.Web.UI.Page
                     cmd.Parameters.AddWithValue("@LastName", lastName);
                     cmd.Parameters.AddWithValue("@Email", email);
                     cmd.Parameters.AddWithValue("@HireDate", DateTime.Now);
-                    cmd.Parameters.AddWithValue("@JobTitle", jobTitle);
+                    cmd.Parameters.AddWithValue("@JobTitleID", ddlJobTitles.SelectedItem.Value);
                     cmd.Parameters.AddWithValue("@Salary", salary);
 
                     conn.Open();
@@ -109,17 +152,37 @@ public partial class Controlls_GridView : System.Web.UI.Page
         }
     }
 
+    private void BindJobTitles()
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            using (SqlCommand cmd = new SqlCommand("SELECT JobTitleID, Title FROM JobTitle", conn))
+            {
+                conn.Open();
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                ddlJobTitles.DataSource = reader;
+                ddlJobTitles.DataTextField = "Title";  // The text to display in the dropdown
+                ddlJobTitles.DataValueField = "JobTitleID";  // The value to be submitted
+                ddlJobTitles.DataBind();
+            }
+        }
+
+        // Optionally add a default item
+        ddlJobTitles.Items.Insert(0, new ListItem("Select Job Title", "0"));
+    }
+
     private void ClearInputFields()
     {
         txtFirstName.Text = string.Empty;
         txtLastName.Text = string.Empty;
         txtEmail.Text = string.Empty;
-        txtJobTitle.Text = string.Empty;
+        ddlJobTitles.ClearSelection();
         txtSalary.Text = string.Empty;
         hdnEmployeeID.Value = string.Empty; // Clear hidden field
     }
 
-    private void UpdateEmployee(int employeeID, string firstName, string lastName, string email, string jobTitle, decimal salary)
+    private void UpdateEmployee(int employeeID, string firstName, string lastName, string email, int JobTitleID, decimal salary)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
@@ -131,7 +194,7 @@ public partial class Controlls_GridView : System.Web.UI.Page
                 cmd.Parameters.AddWithValue("@FirstName", firstName);
                 cmd.Parameters.AddWithValue("@LastName", lastName);
                 cmd.Parameters.AddWithValue("@Email", email);
-                cmd.Parameters.AddWithValue("@JobTitle", jobTitle);
+                cmd.Parameters.AddWithValue("@JobTitleID", JobTitleID);
                 cmd.Parameters.AddWithValue("@Salary", salary);
 
                 conn.Open();

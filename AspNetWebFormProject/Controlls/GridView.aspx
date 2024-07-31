@@ -62,6 +62,7 @@
                             <asp:Label ID="lblJobTitle" runat="server" Text='<%# Bind("Title") %>'></asp:Label>
                         </ItemTemplate>
                         <EditItemTemplate>
+                            <asp:HiddenField ID="hnJobTitle" runat="server" value='<%# Bind("Title") %>' />
                             <asp:DropDownList ID="ddlJobTitle" runat="server"></asp:DropDownList>
                         </EditItemTemplate>
                     </asp:TemplateField>

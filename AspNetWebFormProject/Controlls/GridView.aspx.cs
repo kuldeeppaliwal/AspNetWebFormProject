@@ -66,10 +66,16 @@ public partial class Controlls_GridView : System.Web.UI.Page
                     ddlJobTitle.DataBind();
 
                     // Set the selected value based on current data
-                    Label lblJobTitle = (Label)row.FindControl("lblJobTitle");
+                    HiddenField lblJobTitle = (HiddenField)row.FindControl("hnJobTitle");
                     if (lblJobTitle != null)
                     {
-                        ddlJobTitle.SelectedValue = DataBinder.Eval(row.DataItem, "JobTitleID").ToString();
+                        foreach (ListItem item in ddlJobTitle.Items)
+                        {
+                            if (item.Text == lblJobTitle.Value)
+                            {
+                                ddlJobTitle.SelectedValue = item.Value;
+                            }
+                        }
                     }
                 }
             }
